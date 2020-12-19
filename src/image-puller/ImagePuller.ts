@@ -27,8 +27,8 @@ export class ImagePuller {
     })
   }
 
-  public pullRunnerImage(imageName: string, imageTag: string): Observable<void> {
-    return new Observable<void>(sub => {
+  public pullRunnerImage(imageName: string, imageTag: string): Observable<boolean> {
+    return new Observable<boolean>(sub => {
       this.imagePullerEventHandler.onImagePullStart$.next();
       this.dockerHost.pull(
         `${imageName}:${imageTag}`,
@@ -41,7 +41,7 @@ export class ImagePuller {
                 sub.error(err1);
               } else {
                 this.imagePullerEventHandler.onImagePullFinished$.next();
-                sub.next();
+                sub.next(true);
               }
             },
             (event: IPullProgress) => {

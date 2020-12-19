@@ -1,7 +1,6 @@
 export interface ICodeRunnerOptions {
-  runnerName: string;
+  runnerBaseName: string;
   dockerImageName: string;
   dockerImageTag: string;
   dockerImageVersion?: string;
-  runCodeCommands: string[]
 }

@@ -1,8 +1,10 @@
 import { Subject } from "rxjs";
 import { IRunnerEventHandler } from "./interfaces/IRunnerEventHandler";
+import { IRunnerInfo } from "./interfaces/IRunnerInfo";
 
 export class RunnerEventHandler implements IRunnerEventHandler {
-  notifyCodeRunFinished$: Subject<string> = new Subject<string>();
-  notifyCodeRunStarted$: Subject<string> = new Subject<string>();
-  notifyRunnerRemoved$: Subject<string> = new Subject<string>();
+  onRunnerCreated$: Subject<IRunnerInfo> = new Subject<IRunnerInfo>();
+  onRunnerRemoved$: Subject<IRunnerInfo> = new Subject<IRunnerInfo>();
+  onRunStarted$: Subject<IRunnerInfo> = new Subject<IRunnerInfo>();
+  onRunFinished$: Subject<IRunnerInfo> = new Subject<IRunnerInfo>();
 }

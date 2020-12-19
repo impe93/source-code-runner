@@ -1,25 +1,13 @@
 export interface IRunOptions {
   isNetworkEnabled?: boolean;
-  maxRunningTime?: number;
+  timoutTime?: number;
 }
 
-export interface IFileRunOptions {
+export interface IFileRunOptions extends IRunOptions {
   mainFile: string;
   dir?: string;
-  isNetworkEnabled?: boolean;
-  maxRunningTime?: number;
 }
 
-export interface IInlineRunOptions {
+export interface IInlineRunOptions extends IRunOptions {
   code: string;
-  isNetworkEnabled?: boolean;
-  maxRunningTime?: number;
-}
-
-export function isInlineRunOptions(obj: any): boolean {
-  return 'code' in obj;
-}
-
-export function isFileRunOptions(obj: any): boolean {
-  return 'mainFile' in obj;
 }
