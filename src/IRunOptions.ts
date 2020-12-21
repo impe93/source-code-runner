@@ -1,5 +1,5 @@
 export interface IRunOptions {
-  isNetworkEnabled?: boolean;
+  isNetworkDisabled?: boolean;
   timoutTime?: number;
 }
 

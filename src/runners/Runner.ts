@@ -9,7 +9,6 @@ import { fromExtended, IRunnerInfo, IRunnerInfoExtended } from "./interfaces/IRu
 import { v4 } from 'uuid';
 import { CodeRunnerError } from "../error/CodeRunnerError";
 import { CodeRunnerErrorType } from "../error/CodeRunnerErrorType";
-import { CodeRunner } from "../CodeRunner";
 
 export abstract class Runner {
 
