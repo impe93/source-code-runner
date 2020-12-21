@@ -25,7 +25,7 @@ export abstract class Runner {
         const stdout: WritableStream = new WritableStream();
         const stderr: WritableStream = new WritableStream();
         const runnerOptions: ContainerCreateOptions = this.runnerOptionFactory();
-        this.buildPipeline(stdout, stderr, runnerOptions, sub, codeRunOptions, runOptions)
+        this.buildRunnerPipeline(stdout, stderr, runnerOptions, sub, codeRunOptions, runOptions)
           .subscribe(result => {
             if (result instanceof CodeRunnerError) {
               this.runEventHandler.onRunnerRemoved$.error(result);
@@ -49,7 +49,7 @@ export abstract class Runner {
     return new Observable(sub => sub.next(runnerInfo));
   }
 
-  private buildPipeline(stdout: WritableStream, stderr: WritableStream, runnerOptions: Docker.ContainerCreateOptions, sub: Subscriber<IRunnerInfo>, codeRunOptions: {}, runOptions: IRunOptions) {
+  private buildRunnerPipeline(stdout: WritableStream, stderr: WritableStream, runnerOptions: Docker.ContainerCreateOptions, sub: Subscriber<IRunnerInfo>, codeRunOptions: {}, runOptions: IRunOptions) {
     return this.createRunner(stdout, stderr, runnerOptions)
       .pipe(
         tap(info => sub.next(fromExtended(info))),
