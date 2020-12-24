@@ -7,7 +7,6 @@ import { Observable, throwError } from 'rxjs';
 import { fromExtended, IRunnerInfoExtended } from './interfaces/IRunnerInfo';
 import { CodeRunnerError } from '../error/CodeRunnerError';
 import { CodeRunnerErrorType } from '../error/CodeRunnerErrorType';
-import path from 'path';
 import { archiveString } from '../helpers/archive-helper';
 import { switchMap, tap } from 'rxjs/operators';
 

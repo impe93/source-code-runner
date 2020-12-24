@@ -6,7 +6,7 @@
   "author": "Lorenzo Imperatrice",
   "license": "MIT",
   "scripts": {
-    "clean": "rimraf dist",
+    "clean": "rimraf lib",
     "build": "tsc",
     "test": "jest"
   },
