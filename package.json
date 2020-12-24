@@ -1,7 +1,7 @@
 {
   "name": "source-code-runner",
   "version": "0.0.1",
-  "description": "Code runner with differents implementations",
+  "description": "Source code runner with differents programming languages implementations",
   "main": "index.js",
   "author": "Lorenzo Imperatrice",
   "license": "MIT",
@@ -21,12 +21,14 @@
     "testRegex": "^.+\\.spec\\.ts$"
   },
   "dependencies": {
+    "archiver": "^5.1.0",
     "dockerode": "^3.2.1",
     "memory-streams": "^0.1.3",
     "rxjs": "^6.6.3",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "@types/archiver": "^5.1.0",
     "@types/dockerode": "^3.2.1",
     "@types/jest": "^26.0.19",
     "@types/uuid": "^8.3.0",

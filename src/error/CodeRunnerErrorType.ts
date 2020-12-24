@@ -3,5 +3,6 @@ export enum CodeRunnerErrorType {
   CreateRunner = 2,
   DestroyRunner = 3,
   Run = 4,
-  WaitingDestruction
+  WaitingDestruction = 5,
+  BeforeRun = 6
 }

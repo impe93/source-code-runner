@@ -6,9 +6,12 @@ import { ImagePuller } from './image-puller/ImagePuller';
 import { ImagePullerEventHandler } from './image-puller/ImagePullerEventHandler';
 import { IImagePullerEventHandler } from './image-puller/interfaces/IImagePullerEventHandler';
 import { IPullProgress } from './image-puller/interfaces/IPullProgress';
-import { IFileRunOptions, IInlineRunOptions } from './IRunOptions';
+import { IRunOptions } from './IRunOptions';
+import { InlineRunner } from './runners/InlineRunner';
 import { IRunnerEventHandler } from './runners/interfaces/IRunnerEventHandler';
+import { IRunnerInfo } from './runners/interfaces/IRunnerInfo';
 import { RunnerEventHandler } from './runners/RunnerEventHandler';
+import { RunType } from './RunType';
 
 export abstract class CodeRunner {
 
@@ -16,8 +19,10 @@ export abstract class CodeRunner {
 
   // ----- Docker Host section -----
   protected dockerHost: Docker;
+  
   protected onHostReady$: Subject<void> = new Subject();
   public get onHostReady(): Observable<void> { return this.onHostReady$.asObservable() }
+  
   protected _dockerHostOptions: DockerOptions;
   public get dockerHostOptions(): DockerOptions { return this._dockerHostOptions }
 
@@ -29,16 +34,19 @@ export abstract class CodeRunner {
   public get onImagePullProgress(): Observable<IPullProgress> { return this.imagePullerEventHandler.onImagePullProgress$.asObservable(); }
 
   // ----- Runners section -----  
+  private inlineRunner: InlineRunner;
+
   private runnerEventHandler: IRunnerEventHandler = new RunnerEventHandler();
-  public get onRunStarted(): Observable<string> { return this.runnerEventHandler.onRunStarted$.asObservable() }
-  public get onRunFinished(): Observable<string> { return this.runnerEventHandler.onRunFinished$.asObservable() }
-  public get onRunnerRemoved(): Observable<string> { return this.runnerEventHandler.onRunnerRemoved$.asObservable() }
+  public get onRunStarted(): Observable<IRunnerInfo> { return this.runnerEventHandler.onRunStarted$.asObservable() }
+  public get onRunFinished(): Observable<IRunnerInfo> { return this.runnerEventHandler.onRunFinished$.asObservable() }
+  public get onRunnerRemoved(): Observable<IRunnerInfo> { return this.runnerEventHandler.onRunnerRemoved$.asObservable() }
 
   constructor(codeRunnerOptions: ICodeRunnerOptions, autoDownloadRunnerImage: boolean = true, dockerHostOptions?: DockerOptions) {
     this.codeRunnerOptions = codeRunnerOptions;
     this._dockerHostOptions = dockerHostOptions
     this.dockerHost = new Docker(dockerHostOptions);
     this.imagePuller = new ImagePuller(this.imagePullerEventHandler, this.dockerHost);
+    this.inlineRunner = new InlineRunner(this.runnerEventHandler, this.dockerHost, codeRunnerOptions);
     this.initDockerHost(codeRunnerOptions, autoDownloadRunnerImage).subscribe();
   }
 
@@ -67,35 +75,17 @@ export abstract class CodeRunner {
       )
   }
 
-  // public runCode(runOptions: RunOptions) {
-  //   const runOptionsWithDefaultValues: RunOptions = this.getOptionsWithDefaultValues(runOptions);
-  //   const commands: string[] = this.getFixedRunCommands(runOptionsWithDefaultValues.code);
-  //   const runnerOptions: any = this.getRunnerOptions(runOptionsWithDefaultValues.isNetworkEnabled);
-  //   const timeout = this.createRemoveContainerTimeout(runnerOptions.name, runOptionsWithDefaultValues.maxRunningTime);
-  //   this.notifyCodeRunStarted$.next();
-  //   this.dockerHost.run(
-  //     `${this.codeRunnerOptions.dockerImageName}:${this.codeRunnerOptions.dockerImageTag}`,
-  //     commands,
-  //     [this.stdout, this.stderr],
-  //     runnerOptions,
-  //     (err, data, container: Container) => this.runCallback(err, data, container, timeout),
-  //   )
-  // }
-
-  public run(runOptions: IInlineRunOptions | IFileRunOptions) {
-    
-  }
-
-  protected abstract getFixedRunCommands(code: string): string[];
-
-  private getFileOptionsWithDefaultValues(runOptions: IFileRunOptions): IFileRunOptions {
-    return {
-      mainFile: runOptions.mainFile,
-      dir: runOptions.dir || null,
-      isNetworkEnabled: runOptions.isNetworkEnabled || false,
-      timoutTime: runOptions.timoutTime || 3000
+  public run(runOptions: IRunOptions, runType: RunType, options: any): Observable<IRunnerInfo> {
+    switch(runType) {
+      case RunType.Inline: {
+        const codeRunOption = this.codeRunOptionFactory();
+        codeRunOption.code = options.code;
+        return this.inlineRunner.run(runOptions, codeRunOption);
+      }
     }
   }
+
+  protected abstract codeRunOptionFactory(): any;
 
   public isDockerHostUp(): Observable<boolean> {
     return new Observable<boolean>(sub => {

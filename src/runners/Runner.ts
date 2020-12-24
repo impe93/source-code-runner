@@ -18,13 +18,14 @@ export abstract class Runner {
     protected codeRunnerOptions: ICodeRunnerOptions
   ) { }
 
-  public run(runOptions: IRunOptions, codeRunOptions?: {}): Observable<IRunnerInfo> {
+  public run(runOptions: IRunOptions, codeRunOptions?: any): Observable<IRunnerInfo> {
     return new Observable<IRunnerInfo>(
       sub => {
         const stdout: WritableStream = new WritableStream();
         const stderr: WritableStream = new WritableStream();
-        const runnerOptions: ContainerCreateOptions = this.runnerOptionFactory();
-        this.buildRunnerPipeline(stdout, stderr, runnerOptions, sub, codeRunOptions, runOptions)
+        const defaultRunOptions: IRunOptions = this.getDefaultOptions(runOptions);
+        const runnerOptions: ContainerCreateOptions = this.runnerOptionFactory(defaultRunOptions);
+        this.buildRunnerPipeline(stdout, stderr, runnerOptions, sub, codeRunOptions, defaultRunOptions)
           .subscribe(result => {
             if (result instanceof CodeRunnerError) {
               this.runEventHandler.onRunnerRemoved$.error(result);
@@ -36,19 +37,19 @@ export abstract class Runner {
     );
   }
 
-  protected abstract runnerOptionFactory(): ContainerCreateOptions;
+  protected abstract runnerOptionFactory(runOptions: IRunOptions): ContainerCreateOptions;
 
-  protected abstract runCode(runnerInfo: IRunnerInfoExtended, codeRunOptions?: {}): Observable<IRunnerInfoExtended>;
+  protected abstract runCode(runnerInfo: IRunnerInfoExtended, codeRunOptions?: any): Observable<IRunnerInfoExtended>;
 
-  protected beforeRunCode(runnerInfo: IRunnerInfoExtended, codeRunOptions?: {}): Observable<IRunnerInfoExtended> {
+  protected beforeRunCode(runnerInfo: IRunnerInfoExtended, codeRunOptions?: any): Observable<IRunnerInfoExtended> {
     return new Observable(sub => sub.next(runnerInfo));
   }
 
-  protected beforeRemoveRunner(runnerInfo: IRunnerInfoExtended, codeRunOptions?: {}): Observable<IRunnerInfoExtended> {
+  protected beforeRemoveRunner(runnerInfo: IRunnerInfoExtended, codeRunOptions?: any): Observable<IRunnerInfoExtended> {
     return new Observable(sub => sub.next(runnerInfo));
   }
 
-  private buildRunnerPipeline(stdout: WritableStream, stderr: WritableStream, runnerOptions: Docker.ContainerCreateOptions, sub: Subscriber<IRunnerInfo>, codeRunOptions: {}, runOptions: IRunOptions) {
+  private buildRunnerPipeline(stdout: WritableStream, stderr: WritableStream, runnerOptions: Docker.ContainerCreateOptions, sub: Subscriber<IRunnerInfo>, codeRunOptions: any, runOptions: IRunOptions) {
     return this.createRunner(stdout, stderr, runnerOptions)
       .pipe(
         tap(info => sub.next(fromExtended(info))),
@@ -94,12 +95,12 @@ export abstract class Runner {
       );
   }
 
-  private beforeRemoveRunnerPipelinePart(info: IRunnerInfoExtended, codeRunOptions: {}) {
+  private beforeRemoveRunnerPipelinePart(info: IRunnerInfoExtended, codeRunOptions: any) {
     this.runEventHandler.onRunFinished$.next(fromExtended(info));
     return this.beforeRemoveRunner(info, codeRunOptions);
   }
 
-  private runCodePipelinePart(info: IRunnerInfoExtended, codeRunOptions: {}, runOptions: IRunOptions): Observable<IRunnerInfoExtended> {
+  private runCodePipelinePart(info: IRunnerInfoExtended, codeRunOptions: any, runOptions: IRunOptions): Observable<IRunnerInfoExtended> {
     return of(info).pipe(
       switchMap(info => {
         this.runEventHandler.onRunStarted$.next(fromExtended(info));
@@ -123,24 +124,27 @@ export abstract class Runner {
     return new Observable<IRunnerInfoExtended>((sub: Subscriber<IRunnerInfoExtended>) => {
       runnerOptions.name = `${this.codeRunnerOptions.runnerBaseName}-${v4()}`;
       runnerOptions.Image = `${this.codeRunnerOptions.dockerImageName}:${this.codeRunnerOptions.dockerImageTag}`
-      this.dockerHost.createContainer(
-        runnerOptions,
-        (err, container) => {
-          this.runnerCreated(err, sub, container, stdout, stderr, runnerOptions.name);
-        }
-      );
+      let runnerInfo: IRunnerInfoExtended;
+      this.dockerHost.createContainer(runnerOptions)
+        .then((container: Container) => {
+          this.attachOutputs(container, stdout, stderr);
+          runnerInfo = { runnerName: runnerOptions.name, stderr, stdout, container: container };
+          return container.start();
+        })
+        .then(_ => {
+          this.runEventHandler.onRunnerCreated$.next(runnerInfo);
+          sub.next(runnerInfo);
+        })
+        .catch(err => {
+          return sub.error(
+            new CodeRunnerError(
+              CodeRunnerErrorType.CreateRunner,
+              runnerInfo,
+              'Something gone wrong during runner init'
+            )
+          );
+        });
     })
-  }
-
-  private runnerCreated(err: any, sub: Subscriber<IRunnerInfoExtended>, container: Docker.Container, stdout: WritableStream, stderr: WritableStream, runnerName: string) {
-    const runnerInfo: IRunnerInfoExtended = { runnerName, stderr, stdout, container: container };
-    if (err) {
-      sub.error(new CodeRunnerError(CodeRunnerErrorType.CreateRunner, runnerInfo, 'Something gone wrong during runner init'));
-    } else {
-      this.attachOutputs(container, stdout, stderr);
-      this.runEventHandler.onRunnerCreated$.next(runnerInfo);
-      sub.next(runnerInfo);
-    }
   }
 
   private attachOutputs(container: Docker.Container, stdout: WritableStream, stderr: WritableStream) {
@@ -202,6 +206,13 @@ export abstract class Runner {
           )
         )
       })
+  }
+
+  private getDefaultOptions(runOptions: IRunOptions): IRunOptions {
+    return {
+      isNetworkDisabled: runOptions.isNetworkDisabled || true,
+      timoutTime: runOptions.timoutTime || 3000
+    }
   }
 
 }
