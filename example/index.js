@@ -1,6 +1,5 @@
 const { switchMap } = require('rxjs/operators');
 const { JavaScriptCodeRunner } = require('../lib/code-runners/JavaScriptCodeRunner');
-const { RunType } = require('../lib/RunType');
 
 
 const jsRunner = new JavaScriptCodeRunner(true);

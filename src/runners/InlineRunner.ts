@@ -29,7 +29,6 @@ export class InlineRunner extends Runner {
 
   protected runCode(runnerInfo: IRunnerInfoExtended, codeRunOptions?: any): Observable<IRunnerInfoExtended> {
     const { runCommands } = codeRunOptions;
-    this.runEventHandler.onRunStarted$.next(fromExtended(runnerInfo))
     return this.execRunCommands(runCommands, runnerInfo)
       .pipe(
         tap(_ => this.runEventHandler.onRunFinished$.next(fromExtended(runnerInfo)))
@@ -39,7 +38,7 @@ export class InlineRunner extends Runner {
   protected beforeRunCode(runnerInfo: IRunnerInfoExtended, codeRunOptions?: any): Observable<IRunnerInfoExtended> {
     const { code, beforeRunCommands, ext } = codeRunOptions;
     let { fileName } = codeRunOptions;
-
+    
     if (!code) return throwError(new CodeRunnerError(CodeRunnerErrorType.BeforeRun, runnerInfo, 'Code can\'t be null'));
     if (!fileName && !ext) return throwError(new CodeRunnerError(CodeRunnerErrorType.BeforeRun, runnerInfo, 'One between ext and fileName has to be provided'));
     if (!fileName) fileName = this.getDefaultName(fileName, ext);
@@ -59,9 +58,9 @@ export class InlineRunner extends Runner {
           AttachStdin: false,
           Cmd: ['sh', '-c', ...commands],
           Tty: false,
-        })
-          .then(val => sub.next(runnerInfo))
-          .catch(err => sub.error(new CodeRunnerError(CodeRunnerErrorType.BeforeRun, runnerInfo, 'Something gone wrong during exec preparation commands')));
+        }).then(val => {
+          sub.next(runnerInfo)
+        }).catch(err => sub.error(new CodeRunnerError(CodeRunnerErrorType.BeforeRun, runnerInfo, 'Something gone wrong during exec preparation commands')));
       } else {
         sub.next(runnerInfo);
       }
@@ -77,8 +76,14 @@ export class InlineRunner extends Runner {
           Cmd: ['sh', '-c', ...commands],
           Tty: false,
         })
-          .then(val => sub.next(runnerInfo))
-          .catch(err => sub.error(new CodeRunnerError(CodeRunnerErrorType.BeforeRun, runnerInfo, 'Something gone wrong during exec run commands')));
+          .then(val => {
+            sub.next(runnerInfo)
+          })
+          .catch(err => {
+            debugger;
+            console.log(err)
+            sub.error(new CodeRunnerError(CodeRunnerErrorType.BeforeRun, runnerInfo, 'Something gone wrong during exec run commands'))
+          });
       } else {
         sub.next(runnerInfo);
       }
@@ -97,8 +102,12 @@ export class InlineRunner extends Runner {
           return new Observable<void>(sub => {
             runnerInfo.container
               .putArchive(buffer, { path: '/tmp' })
-              .then(_ => sub.next())
-              .catch(err => throwError(new CodeRunnerError(CodeRunnerErrorType.BeforeRun, runnerInfo, 'Something gone wrong while send the archived code to the runner.')));
+              .then(_ => {
+                sub.next()
+              })
+              .catch(err => {
+                throwError(new CodeRunnerError(CodeRunnerErrorType.BeforeRun, runnerInfo, 'Something gone wrong while send the archived code to the runner.'))
+              });
           });
         })
       );
